@@ -1,9 +1,10 @@
-
 module lock_contract::lending;
+
 
 use sui::balance::Balance;
 use sui::coin::{Self, Coin};
 use sui::clock::{timestamp_ms, Clock};
+use sui::event;
 
 
 const EInvalidDuration: u64 = 0;
@@ -20,42 +21,54 @@ public struct Locker<phantom CoinType> has key, store {
     }
 
 
-public struct LoanCreated<CoinType> has copy, drop, store{
+public struct LoanCreated<phantom CoinType> has copy, drop, store {
     lender: address,
     amount: u64,
     start_time: u64,
     duration: u64
-}
+    }
 
 
-public struct LoanWithdrawn<CoinType> has copy, drop, store{
+public struct LoanWithdrawn<phantom CoinType> has copy, drop, store {
     lender: address,
-    amount: u64,
-    withdraw_time: u64
-}
+    withdraw_time: u64,
+    amount_withdrawn: u64
+    }
 
 
+#[allow(lint(self_transfer))]
 public fun lend<CoinType>(
     coin: Coin<CoinType>,
     duration: u64,
     clock: &Clock,
     ctx: &mut TxContext
-    ): Locker<CoinType> {   
+    ) {   
 
     assert!(duration > 0, EInvalidDuration);
 
     let now = clock.timestamp_ms();
     let lender = tx_context::sender(ctx);
     let balance = coin::into_balance(coin);
+    let amount = balance.value();
 
-    Locker {
+    let locker = Locker {
         id: object::new(ctx),
         balance,
         lender,
         start_time: now,
         duration,
-    }
+    };
+
+    transfer::public_transfer(locker, lender);
+
+    event::emit(LoanCreated<CoinType> {
+        lender: lender,
+        amount,
+        start_time: now,
+        duration
+    });
 }
+
 
 #[lint_allow(self_transfer)]
 public fun withdraw_loan<CoinType>(
@@ -73,5 +86,10 @@ public fun withdraw_loan<CoinType>(
     let amount = locker.balance.value();
     let coin = coin::take(&mut locker.balance, amount, ctx);
     transfer::public_transfer(coin, sender);
+    
+    event::emit(LoanWithdrawn<CoinType> {
+        lender: sender,
+        withdraw_time: now,
+        amount_withdrawn: amount,
+    });
 }
-
