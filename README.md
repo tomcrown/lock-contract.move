@@ -146,5 +146,3 @@ lock_contract/
 ```
 
 ---
-
-Let me know if you'd like to add badges, visuals, or deployment instructions to this `README`.
