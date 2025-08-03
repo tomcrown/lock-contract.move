@@ -28,7 +28,7 @@ This Sui Move smart contract allows users to **lock fungible tokens for a fixed 
 Stores loan metadata and the locked balance:
 
 ```move
-struct Locker<CoinType> {
+public struct Locker<CoinType> {
     id: UID,
     balance: Balance<CoinType>,
     lender: address,
@@ -42,7 +42,7 @@ struct Locker<CoinType> {
 Emitted when a new loan is created:
 
 ```move
-struct LoanCreated {
+public struct LoanCreated {
     lender: address,
     amount: u64,
     start_time: u64,
@@ -55,7 +55,7 @@ struct LoanCreated {
 Emitted when a loan is successfully withdrawn:
 
 ```move
-struct LoanWithdrawn {
+public struct LoanWithdrawn {
     lender: address,
     withdraw_time: u64,
     amount_withdrawn: u64
