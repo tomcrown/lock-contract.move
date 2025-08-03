@@ -1,4 +1,4 @@
-module lock_contract::lending;
+module lock_contract::lock;
 
 
 use sui::balance::Balance;
@@ -10,6 +10,10 @@ use sui::event;
 const EInvalidDuration: u64 = 0;
 const EUnauthorized: u64 = 1;
 const ETooEarly: u64 = 2;
+
+
+// 1 minute = 60,000 ms
+const MS_PER_MINUTE: u64 = 60000;
 
 
 public struct Locker<phantom CoinType> has key, store {
@@ -32,20 +36,21 @@ public struct LoanCreated<phantom CoinType> has copy, drop, store {
 public struct LoanWithdrawn<phantom CoinType> has copy, drop, store {
     lender: address,
     withdraw_time: u64,
-    amount_withdrawn: u64
+    amount_withdrawn: u64,
     }
 
 
 #[allow(lint(self_transfer))]
 public fun lend<CoinType>(
     coin: Coin<CoinType>,
-    duration: u64,
+    duration_minutes: u64,
     clock: &Clock,
     ctx: &mut TxContext
     ) {   
 
-    assert!(duration > 0, EInvalidDuration);
+    assert!(duration_minutes > 0, EInvalidDuration);
 
+    let duration_ms = duration_minutes * MS_PER_MINUTE; // takes minutes input from user and converts to milliseconds 
     let now = clock.timestamp_ms();
     let lender = tx_context::sender(ctx);
     let balance = coin::into_balance(coin);
@@ -56,16 +61,17 @@ public fun lend<CoinType>(
         balance,
         lender,
         start_time: now,
-        duration,
+        duration: duration_ms,
     };
 
     transfer::public_transfer(locker, lender);
+
 
     event::emit(LoanCreated<CoinType> {
         lender: lender,
         amount,
         start_time: now,
-        duration
+        duration: duration_minutes, //duration in minutes
     });
 }
 
@@ -85,11 +91,12 @@ public fun withdraw_loan<CoinType>(
 
     let amount = locker.balance.value();
     let coin = coin::take(&mut locker.balance, amount, ctx);
+
     transfer::public_transfer(coin, sender);
-    
+
     event::emit(LoanWithdrawn<CoinType> {
         lender: sender,
         withdraw_time: now,
-        amount_withdrawn: amount,
+        amount_withdrawn: amount
     });
 }

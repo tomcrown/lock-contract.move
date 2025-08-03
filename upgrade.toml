@@ -1,5 +1,5 @@
 [upgrade]
-upgrade_cap = "0xa39d4308f6e838f97b43d1aab953529e7861d32adf34eb29c51280a9bf49ce65"
-package_id = "0xe2d5659be8e88cb9b997c004fab7fa06d2b93f78ea7ff1ec7d6212b727ecbc9c"
+upgrade_cap = "0xb3e4674ac795efbaa0007e56ed6765e25c09261f416917171b80a65ff6a8b203"
+package_id = "0xb9c2823a59086dcccb9b6eaa78e23e26937965fd640d93a7434cacb87169829c"
 environment = "testnet"
-created_at = "2025-08-02T12:07:18.082Z"
+created_at = "2025-08-03T01:13:09.706Z"
