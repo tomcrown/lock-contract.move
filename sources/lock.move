@@ -6,13 +6,13 @@ use sui::coin::{Self, Coin};
 use sui::clock::{timestamp_ms, Clock};
 use sui::event;
 
+// Error codes
+const EInvalidDuration: u64 = 0; // Raised when the lock duration is zero
+const EUnauthorized: u64 = 1; // Raised when a non-lender tries to withdraw
+const ETooEarly: u64 = 2; // Raised when a withdrawal is attempted before the lock expires
 
-const EInvalidDuration: u64 = 0;
-const EUnauthorized: u64 = 1;
-const ETooEarly: u64 = 2;
 
-
-// 1 minute = 60,000 ms
+// Milliseconds per minute (used to convert user input into lock duration)
 const MS_PER_MINUTE: u64 = 60000;
 
 
@@ -39,7 +39,12 @@ public struct LoanWithdrawn<phantom CoinType> has copy, drop, store {
     amount_withdrawn: u64,
     }
 
-
+/// Entry function to lock tokens for a fixed duration (in minutes).
+/// 
+/// - Converts the coin into a Balance.
+/// - Stores it in a new Locker object with time metadata.
+/// - Transfers the Locker back to the user.
+/// - Emits a `LoanCreated` event.
 #[allow(lint(self_transfer))]
 public entry fun lend<CoinType>(
     coin: Coin<CoinType>,
@@ -50,7 +55,7 @@ public entry fun lend<CoinType>(
 
     assert!(duration_minutes > 0, EInvalidDuration);
 
-    let duration_ms = duration_minutes * MS_PER_MINUTE; // takes minutes input from user and converts to milliseconds 
+    let duration_ms = duration_minutes * MS_PER_MINUTE;
     let now = clock.timestamp_ms();
     let lender = tx_context::sender(ctx);
     let balance = coin::into_balance(coin);
@@ -71,11 +76,17 @@ public entry fun lend<CoinType>(
         lender: lender,
         amount,
         start_time: now,
-        duration: duration_minutes, //duration in minutes
+        duration: duration_minutes,
     });
 }
 
 
+/// Entry function to withdraw locked tokens after the lock duration has passed.
+/// 
+/// - Validates that only the lender can withdraw.
+/// - Checks that the current time is past the unlock time.
+/// - Transfers the coin back to the lender and destroys the Locker object.
+/// - Emits a `LoanWithdrawn` event.
 #[lint_allow(self_transfer)]
 public entry fun withdraw_loan<CoinType>(
     locker: Locker<CoinType>,
@@ -107,6 +118,9 @@ public entry fun withdraw_loan<CoinType>(
 }
 
 
+/// View function to retrieve metadata from a Locker.
+/// 
+/// Returns: (lender, amount, start_time, duration)
 public entry fun get_locker_info<CoinType>(locker: &Locker<CoinType>): (address, u64, u64, u64) {
     (
         locker.lender,
