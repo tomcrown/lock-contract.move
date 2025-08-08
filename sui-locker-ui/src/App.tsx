@@ -47,9 +47,11 @@ export default function App() {
       const result = await signAndExecuteTransaction({ transaction: tx });
       console.log("Lend result:", result);
       alert("Lend successful!");
+      setAmountInput("");
+      setDuration(5);
     } catch (error) {
       console.error("Lend failed:", error);
-      alert("Lend failed. Check console for details.");
+      alert("Lend failed.");
     }
   }
 
@@ -98,7 +100,6 @@ export default function App() {
     }
   }
 
-
   async function getLockerInfo() {
     if (!lockerId) return;
 
@@ -118,9 +119,11 @@ export default function App() {
         ]);
       } else {
         console.error("Unexpected object format:", res);
+        alert("Unexpected locker format.");
       }
     } catch (e) {
       console.error("Failed to fetch locker info:", e);
+      alert("Failed to fetch locker info. Make sure the ID is valid and you are on the correct network.");
     }
   }
 
