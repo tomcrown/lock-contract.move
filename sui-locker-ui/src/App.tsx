@@ -7,10 +7,12 @@ import {
 import { Transaction } from "@mysten/sui/transactions";
 import { SuiClient, getFullnodeUrl } from "@mysten/sui/client";
 
+// Constants for Move contract components
 const PACKAGE_ID = "0x1c48c1769a145b5c0b79f2f7f7668a6c2bf1161df7bb0a7548ce968bd4c9a76a";
 const MODULE_NAME = "lock";
 const CLOCK_OBJECT_ID = "0x6";
 
+// Initialize Sui client to interact with the blockchain
 const client = new SuiClient({ url: getFullnodeUrl("testnet") });
 
 export default function App() {
@@ -25,6 +27,7 @@ export default function App() {
   const amount = parseFloat(amountInput);
   const isLendDisabled = !currentAccount || !amount || amount <= 0;
 
+  // Sends a transaction to lock (lend) tokens using the Move function
   async function lend() {
     if (!currentAccount || !amount || duration <= 0) {
       alert("Amount or duration must be greater than zero.");
@@ -35,18 +38,45 @@ export default function App() {
       const tx = new Transaction();
       tx.setGasBudget(100000000);
 
+      // Convert entered amount in SUI to `mist` (1e9)
       const suiAmount = BigInt(amount * 1_000_000_000);
       const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(suiAmount)]);
 
+      // Call the Move `lend` function with the coin and duration
       tx.moveCall({
         target: `${PACKAGE_ID}::${MODULE_NAME}::lend`,
         typeArguments: ["0x2::sui::SUI"],
         arguments: [coin, tx.pure.u64(duration), tx.object(CLOCK_OBJECT_ID)],
       });
 
-      const result = await signAndExecuteTransaction({ transaction: tx });
+      const result = await signAndExecuteTransaction({
+        transaction: tx,
+      }) as any;
+
       console.log("Lend result:", result);
-      alert("Lend successful!");
+
+      // Get the digest from the result
+      const digest = result?.digest || result?.effects?.transactionDigest;
+
+      // Fetch the full transaction block with object changes
+      const txBlock = await client.getTransactionBlock({
+        digest,
+        options: { showObjectChanges: true },
+      }) as any;
+
+      const createdObjects = txBlock.objectChanges?.filter((c: any) => c.type === "created");
+      console.log("Created objects:", createdObjects);
+      const lockerObj = createdObjects?.find((c: any) =>
+        c.objectType.includes("Locker<0x2::sui::SUI>")
+      );
+
+      if (lockerObj) {
+        setLockerId(lockerObj.objectId);
+        alert(`Lend successful! Locker ID: ${lockerObj.objectId}`);
+      } else {
+        alert("Lend successful, but no Locker object was found.");
+      }
+
       setAmountInput("");
       setDuration(5);
     } catch (error) {
@@ -55,6 +85,8 @@ export default function App() {
     }
   }
 
+
+  // Sends a transaction to withdraw a locked loan if eligible
   async function withdrawLoan() {
     if (!lockerId || !currentAccount) {
       alert("Locker ID or wallet not connected.");
@@ -78,6 +110,7 @@ export default function App() {
       if (status === "failure") {
         console.error("Withdraw failed:", errorMessage);
 
+        // Show specific error if withdrawal is attempted too early
         if (errorMessage?.toLowerCase().includes("code 2")) {
           alert("Error: It’s too early to withdraw. Please wait until the lock duration ends.");
         } else {
@@ -91,6 +124,7 @@ export default function App() {
     } catch (error: any) {
       console.error("Withdraw failed:", error);
 
+      // Handle "too early" withdraw errors from failed transaction
       const serialized = error?.toString() || "";
       if (serialized.includes("code 2")) {
         alert("Error: It’s too early to withdraw. Please wait until the lock duration ends.");
@@ -100,6 +134,8 @@ export default function App() {
     }
   }
 
+
+  // Fetches Locker object data from chain and parses key fields
   async function getLockerInfo() {
     if (!lockerId) return;
 
@@ -111,6 +147,7 @@ export default function App() {
 
       if (res.data?.content?.dataType === "moveObject") {
         const fields = (res.data.content as any).fields;
+
         setInfo([
           fields.lender,
           fields.balance,
@@ -199,15 +236,17 @@ export default function App() {
             </button>
           </div>
 
-
           <div className="mb-6">
             {info && (
-              <><h2 className="text-lg font-semibold mb-2">Locker Info</h2><div className="mt-4 bg-gray-800 p-4 rounded text-sm">
-                <p><strong>Lender:</strong> {info[0]}</p>
-                <p><strong>Amount (mist):</strong> {info[1]}</p>
-                <p><strong>Start Time:</strong> {info[2]}</p>
-                <p><strong>Duration:</strong> {info[3]}</p>
-              </div></>
+              <>
+                <h2 className="text-lg font-semibold mb-2">Locker Info</h2>
+                <div className="mt-4 bg-gray-800 p-4 rounded text-sm">
+                  <p><strong>Lender:</strong> {info[0]}</p>
+                  <p><strong>Amount (mist):</strong> {info[1]}</p>
+                  <p><strong>Start Time:</strong> {info[2]}</p>
+                  <p><strong>Duration:</strong> {info[3]}</p>
+                </div>
+              </>
             )}
           </div>
         </>
