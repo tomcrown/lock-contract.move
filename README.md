@@ -13,7 +13,7 @@ Includes a connected UI for lending, withdrawing, and viewing locker details.
 
 *Connect your wallet, lock SUI, and test withdrawals directly on Sui Testnet.*
 
-[C:\Users\adeye\Documents\lock_contract\Screenshot.png]
+[\lock_contract\Screenshot.png]
 
 ---
 
