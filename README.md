@@ -9,7 +9,7 @@ Includes a connected UI for lending, withdrawing, and viewing locker details.
 
 ## 🌐 Live Demo
 
-# **[🚀 Launch App](https://lock-contract.vercel.app/)**
+## **[🚀 Launch App](https://lock-contract.vercel.app/)**
 
 *Connect your wallet, lock SUI, and test withdrawals directly on Sui Testnet.*
 ![Lend Screen](/screenshots/lend.png)
