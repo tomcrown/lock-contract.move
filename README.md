@@ -13,7 +13,7 @@ Includes a connected UI for lending, withdrawing, and viewing locker details.
 
 *Connect your wallet, lock SUI, and test withdrawals directly on Sui Testnet.*
 
-![Alt Text](Screenshotspng)
+![Alt Text](Screenshot.png)
 
 ---
 
