@@ -12,7 +12,8 @@ Includes a connected UI for lending, withdrawing, and viewing locker details.
 ## **[🚀 Launch App](https://lock-contract.vercel.app/)**
 
 *Connect your wallet, lock SUI, and test withdrawals directly on Sui Testnet.*
-![Lend Screen](/screenshots/lend.png)
+
+![Lend Screen](C:\Users\adeye\Documents\lock_contract\Screenshot.png)
 
 ---
 
