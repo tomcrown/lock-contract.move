@@ -146,6 +146,3 @@ sui move test
 * **Styling**: Tailwind CSS
 
 ---
-
-If you give me your **live site link** and **actual screenshot files**, I can update the README so it’s copy-paste ready and visually perfect.
-Do you want me to also **add a GIF walkthrough** so recruiters instantly see the app in action? That works really well for portfolio projects.
