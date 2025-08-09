@@ -1,148 +1,151 @@
 ---
 
-# 🔐 Lock Contract - Time-Locked Lending in Sui Move
+# 🔐 Sui Loan Locker – Time-Locked Lending with UI
 
-This Sui Move smart contract allows users to **lock fungible tokens for a fixed time period** and retrieve them only after the duration has passed. It's useful for building escrow-like features, token vesting, or time-based access to funds.
+A **Sui Move smart contract** and **React frontend** that lets users lock SUI tokens for a fixed time period and withdraw them only after the duration ends.
+Includes a connected UI for lending, withdrawing, and viewing locker details.
+
+---
+
+## 🌐 Live Demo
+
+**[🚀 Launch App](https://lock-contract.vercel.app/)**
+*Connect your wallet, lock SUI, and test withdrawals directly on Sui Testnet.*
+![Lend Screen](/screenshots/lend.png)
 
 ---
 
 ## 📦 Features
 
-* **Token Locking (`lend`)**: A user can lock any `Coin<T>` for a specified duration (in minutes).
-* **Time-Based Unlocking (`withdraw_loan`)**: Only the original lender can withdraw the funds, and only after the duration expires.
-* **Event Emission**: Emits `LoanCreated` and `LoanWithdrawn` events for frontend or indexer integration.
-* **Security Checks**:
+### **On-Chain (Move Contract)**
 
-  * Zero-duration lock prevention
+* **Lock SUI (`lend`)** – Lock any `Coin<T>` for a specified number of minutes.
+* **Withdraw After Lock (`withdraw_loan`)** – Withdraw locked funds after the duration expires.
+* **Event Emission** – `LoanCreated` and `LoanWithdrawn` events for indexing.
+* **Security Checks**
+
+  * Zero-duration prevention
   * Early withdrawal restriction
-  * Unauthorized access protection
+  * Only lender can withdraw
+
+### **Frontend (React + Sui dApp Kit)**
+
+* Wallet connection via `ConnectButton`
+* Lock SUI tokens with custom amount & duration
+* Withdraw when eligible
+* Fetch locker details from the blockchain
+* Error handling for early withdrawals & invalid inputs
+* Tailwind CSS UI
 
 ---
 
 ## 🧠 Contract Overview
 
-### Structs
+### **Structs**
 
-#### `Locker<CoinType>`
-
-Stores loan metadata and the locked balance:
-
-```move
-public struct Locker<CoinType> {
-    id: UID,
-    balance: Balance<CoinType>,
-    lender: address,
-    start_time: u64, // in milliseconds
-    duration: u64    // in milliseconds
-}
-```
-
-#### `LoanCreated<CoinType>` (Event)
-
-Emitted when a new loan is created:
-
-```move
-public struct LoanCreated {
-    lender: address,
-    amount: u64,
-    start_time: u64,
-    duration: u64 // in minutes
-}
-```
-
-#### `LoanWithdrawn<CoinType>` (Event)
-
-Emitted when a loan is successfully withdrawn:
-
-```move
-public struct LoanWithdrawn {
-    lender: address,
-    withdraw_time: u64,
-    amount_withdrawn: u64
-}
-```
-
----
-
-## 🧮 Entry Functions
-
-### `lend<CoinType>(coin, duration_minutes, clock, ctx)`
-
-Locks the given `Coin<CoinType>` for a duration (in minutes). Transfers the `Locker` back to the sender.
-
-### `withdraw_loan<CoinType>(locker, clock, ctx)`
-
-Withdraws the locked coin after the time has passed. Can only be called by the original lender.
+| Struct                    | Purpose                                                 |
+| ------------------------- | ------------------------------------------------------- |
+| `Locker<CoinType>`        | Stores locked balance, lender, start time, and duration |
+| `LoanCreated<CoinType>`   | Event emitted when a loan is created                    |
+| `LoanWithdrawn<CoinType>` | Event emitted when a loan is withdrawn                  |
 
 ---
 
 ## ❌ Errors
 
-| Error Code             | Meaning                               |
-| ---------------------- | ------------------------------------- |
-| `0 (EInvalidDuration)` | Duration must be > 0 minutes          |
-| `1 (EUnauthorized)`    | Only the original lender can withdraw |
-| `2 (ETooEarly)`        | Cannot withdraw before unlock time    |
+| Code | Name               | Description                        |
+| ---- | ------------------ | ---------------------------------- |
+| `0`  | `EInvalidDuration` | Duration must be > 0               |
+| `1`  | `EUnauthorized`    | Only lender can withdraw           |
+| `2`  | `ETooEarly`        | Cannot withdraw before unlock time |
+
+---
+
+## 🖥 UI Overview
+
+The React UI interacts with the on-chain contract using:
+
+* `@mysten/dapp-kit` for wallet connection & transactions
+* `@mysten/sui/client` for blockchain queries
+* `Transaction` API for Move calls
+
+**UI Features:**
+
+* **Lend SUI**: Specify amount & duration (in minutes)
+* **Withdraw Loan**: After duration has passed
+* **Get Locker Info**: Fetch on-chain locker details (lender, amount, start time, duration)
+
+---
+
+## 🚀 Getting Started
+
+### **1. Clone Repo**
+
+```bash
+git clone https://github.com/tomcrown/lock-contract.move.git
+cd lock_contract
+```
+
+### **2. Move Contract**
+
+```bash
+sui move build
+sui client publish
+sui move test
+```
+
+### **3. Frontend**
+
+```bash
+cd sui-locker-ui
+pnpm install
+pnpm dev
+```
+
+---
+
+## 📜 Example UI Usage
+
+### **Lock SUI**
+
+1. Connect wallet
+2. Enter amount in SUI
+3. Enter duration in minutes
+4. Click **"Lend SUI"**
+5. Locker ID will be displayed after transaction confirmation
+
+### **Withdraw Loan**
+
+1. Paste **Locker Object ID**
+2. Click **"Withdraw Loan"** (only after time has passed)
+
+### **Get Locker Info**
+
+1. Paste **Locker Object ID**
+2. Click **"Get Locker Info"** to view details
+
 
 ---
 
 ## 🧪 Tests
 
-The contract includes comprehensive tests using Sui's `test_scenario` framework:
-
-| Test Name                            | Description                                               |
-| ------------------------------------ | --------------------------------------------------------- |
-| `test_lend_creates_locker_and_event` | Ensures `lend` creates a `Locker` and emits `LoanCreated` |
-| `test_withdraw_after_duration`       | Verifies successful withdrawal after lock duration        |
-| `test_lend_fails_zero_duration`      | Asserts that lending with 0 duration aborts               |
-| `test_withdraw_fails_if_too_early`   | Fails if withdrawal is attempted too early                |
-| `test_withdraw_fails_if_not_lender`  | Fails if someone else tries to withdraw funds             |
-
----
-
-## 🛠️ Build & Test
-
-Make sure you have the [Sui SDK](https://docs.sui.io) installed.
+Run unit tests for Move contract:
 
 ```bash
-sui move build
 sui move test
 ```
 
 ---
 
-## 🧑‍💻 Example Usage (Simplified)
+## 🔍 Tech Stack
 
-```move
-let coin = Coin<u64>; // assume 100 coins
-let duration_minutes = 5;
-lend<u64>(coin, duration_minutes, &clock, ctx);
-
-// ...time passes
-
-withdraw_loan<u64>(&mut locker, &clock, ctx);
-```
+* **Blockchain**: Sui Move
+* **Frontend**: React + TypeScript
+* **Wallet Integration**: `@mysten/dapp-kit`
+* **Blockchain Client**: `@mysten/sui/client`
+* **Styling**: Tailwind CSS
 
 ---
 
-## 🔍 Use Cases
-
-* **Token Vesting**
-* **Escrow Contracts**
-* **DAO Timelocks**
-* **Savings Locks**
-
----
-
-## 📂 Directory Structure
-
-```
-lock_contract/
-├── Move.toml
-├── sources/
-│   └── lock.move         # Core smart contract
-├── tests/
-│   └── lock_tests.move   # Unit tests
-```
-
----
+If you give me your **live site link** and **actual screenshot files**, I can update the README so it’s copy-paste ready and visually perfect.
+Do you want me to also **add a GIF walkthrough** so recruiters instantly see the app in action? That works really well for portfolio projects.
