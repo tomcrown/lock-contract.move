@@ -6,11 +6,11 @@ use sui::test_utils::assert_eq;
 use sui::clock::{
     Clock,
     create_for_testing, share_for_testing,
-    increment_for_testing,
+    increment_for_testing
 };
 use sui::coin::{Self, Coin};
 use lock_contract::lock::{
-    Locker, lend, withdraw_loan,
+    Locker, lend, withdraw_loan, get_locker_info,
     EInvalidDuration, EUnauthorized, ETooEarly
 };
 
@@ -69,15 +69,45 @@ fun test_withdraw_after_duration() {
     ts::next_tx(&mut scenario, CREATOR);
 
     {
-        let mut locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
+        let locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
         let clock = ts::take_shared<Clock>(&scenario);
-        withdraw_loan<u64>(&mut locker, &clock, scenario.ctx());
+        withdraw_loan<u64>(locker, &clock, scenario.ctx());
         ts::return_shared<Clock>(clock);
-        ts::return_to_address<Locker<u64>>(CREATOR, locker); 
     };
 
     let effects = ts::next_tx(&mut scenario, CREATOR);
     assert_eq(effects.num_user_events(), 1); // LoanWithdrawn
+    scenario.end();
+}
+
+
+#[test]
+fun test_get_locker_info_returns_correct_data() {
+    let mut scenario = ts::begin(CREATOR); {
+        let clock = create_for_testing(scenario.ctx());
+        share_for_testing(clock);
+    };
+
+    ts::next_tx(&mut scenario, CREATOR);
+
+    {
+        let coin: Coin<u64> = coin::mint_for_testing<u64>(42, scenario.ctx());
+        let clock = ts::take_shared<Clock>(&scenario);
+        lend<u64>(coin, 5, &clock, scenario.ctx()); // duration = 5 minutes
+        share_for_testing(clock);
+    };
+
+    ts::next_tx(&mut scenario, CREATOR);
+
+    {
+        let locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
+
+        let (_lender, _balance, _start_time, _duration): (address, u64, u64, u64)
+            = get_locker_info<u64>(&locker);
+
+        ts::return_to_address<Locker<u64>>(CREATOR, locker);
+    };
+
     scenario.end();
 }
 
@@ -120,11 +150,10 @@ fun test_withdraw_fails_if_too_early() {
     ts::next_tx(&mut scenario, CREATOR);
 
     {
-        let mut locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
+        let locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
         let clock = ts::take_shared<Clock>(&scenario);
-        withdraw_loan<u64>(&mut locker, &clock, scenario.ctx()); // too early
+        withdraw_loan<u64>(locker, &clock, scenario.ctx()); // too early
         ts::return_shared<Clock>(clock);
-        ts::return_to_address<Locker<u64>>(CREATOR, locker); 
     };
 
     scenario.end();
@@ -159,11 +188,10 @@ fun test_withdraw_fails_if_not_lender() {
     ts::next_tx(&mut scenario, CALLER);
 
     {
-        let mut locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
+        let locker: Locker<u64> = ts::take_from_address<Locker<u64>>(&scenario, CREATOR);
         let clock = ts::take_shared<Clock>(&scenario);
-        withdraw_loan<u64>(&mut locker, &clock, scenario.ctx()); // not the lender
+        withdraw_loan<u64>(locker, &clock, scenario.ctx()); // not the lender
         ts::return_shared<Clock>(clock);
-        ts::return_to_address<Locker<u64>>(CREATOR, locker); 
     };
 
     scenario.end();
